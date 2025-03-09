@@ -1,0 +1,2 @@
+flask_restful
+firebase_admin
