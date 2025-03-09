@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api
+import os
 
 app = Flask(__name__)
 
@@ -13,4 +14,5 @@ class Hello(Resource):
 api.add_resource(Hello,'/')
 
 if __name__ == '__main__':
-    app.run(debug = True)
+    server_port = os.environ.get('PORT', '5000')
+    app.run(debug=True, port=server_port, host='0.0.0.0')
