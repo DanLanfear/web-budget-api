@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_restx import Resource, Api, fields, marshal_with
 from models import User, Transaction
+from firebase_admin import credentials, firestore, initialize_app
+
 
 import datetime
 import os
@@ -8,8 +10,16 @@ import os
 app = Flask(__name__)
 
 api = Api(app)
+cloud = os.environ.get('cloud')
+key_path = '/firebase-key/latest-key' if cloud else 'db_key.json'
+
+
+cred = credentials.Certificate(key_path)
+default_app = initialize_app(cred)
+db = firestore.client()
 
 user_fields = {
+        'id': fields.Integer,
         'name': fields.String,
         'email': fields.String
     }
@@ -20,9 +30,7 @@ transaction_fields = {
     'amount': fields.Fixed(decimals=2),
 }
 
-users = [
-    User(0,"daniel", "ddblanfearjr@yahoo.com", "password")
-]
+users = db.collection('Users')
 
 transactions =[
     Transaction(0, "kroger", datetime.datetime(2025, 4, 17), 100.00),
@@ -33,6 +41,14 @@ transactions =[
 
 cards = []
 
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers',
+                         'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    return response
+
 
 class Hello(Resource):
     def get(self):
@@ -42,17 +58,25 @@ class Hello(Resource):
 class UserList(Resource):
     @marshal_with(user_fields)
     def get(self):
-        return users
+        try:
+            user_ref = db.collection('Users')
+            users = [doc.to_dict() for doc in user_ref.stream()]
+
+            return users,200
+        except Exception as e:
+            return f"An Error Occured: {e}", 400
 
 @api.route('/users/<user_id>')
 class User(Resource):
     @marshal_with(user_fields)
     def get(self, user_id):
-        user = users[int(user_id)]
+        users = db.collections('Users')
+        user = users[user_id]
         return user
-    def delete(self, user_id):
-        user = users[int(user_id)]
-        # delete user
+    # def delete(self, user_id):
+    #     users = db.collections('Users')
+    #     user = users[user_id]
+    #     # delete user
 
 @api.route('/transactions')
 class TransactionList(Resource):
