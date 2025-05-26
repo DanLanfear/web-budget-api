@@ -100,8 +100,19 @@ class UserTransactionResource(Resource):
         transaction_stream = db.collection('transactions').where('userId', '==', user_id).stream()
         transaction_list = []
         for transaction in transaction_stream:
-            transaction_list.append(Transaction.from_dict(transaction.to_dict()).to_dict() | {"id": transaction.id})
+            transaction_list.append(Transaction.from_dict(transaction.to_dict()).to_dict())
         return transaction_list, 200
+    
+    def post(self, user_id):
+        transaction_ref = db.collection('transactions')
+        batch = db.batch()
+        # get all the transactions in proper form (mainly the date) in a list
+        # for transaction in request.get_json():
+            # 
+        # batch.add(transaction_ref, {one of the guys in a list})
+        # batch.commit()
+        #ADD POST FOR NEW BATCHED TRANSACTIONS
+        return 201
 
 
 api.add_resource(Hello, '/')
