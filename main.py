@@ -18,16 +18,17 @@ cred = credentials.Certificate(key_path)
 default_app = initialize_app(cred)
 db = firestore.client()
 
-user_fields = {
-        'name': fields.String,
-        'email': fields.String
-    }
 
 transaction_fields = {
     'description': fields.String,
     'date': fields.Date,
     'amount': fields.Fixed(decimals=2),
 }
+
+user_fields = {
+        'name': fields.String,
+        'email': fields.String,
+    } 
 
 users = db.collection('Users')
 
@@ -60,8 +61,7 @@ class UserList(Resource):
         try:
             user_ref = db.collection('Users')
             users = [doc.to_dict() for doc in user_ref.stream()]
-
-            return users,200
+            return users, 200
         except Exception as e:
             return f"An Error Occured: {e}", 400
 
@@ -70,9 +70,12 @@ class User(Resource):
     @marshal_with(user_fields)
     def get(self, user_id):
         try:
-            user_ref = db.collection('Users').document(user_id).get()
-            user = user_ref.to_dict()
-            return user, 200
+            user_doc_ref = db.collection("Users").document(user_id)
+            # collection = user_doc_ref.collection("transactions")
+            # for doc in collection.stream():
+            #     print(f"{doc.id} => {doc.to_dict()}")
+            user = user_doc_ref.get()
+            return user.to_dict(), 200
         except Exception as e:
             return f"An Error Occured: {e}", 400
 
