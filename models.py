@@ -1,5 +1,6 @@
 from datetime import datetime
 class Transaction:
+
     def __init__(self, description, date, amount):
         self.description = description
         self.date = date
@@ -7,7 +8,12 @@ class Transaction:
 
     @staticmethod
     def from_dict(source):
-        source["date"] = datetime.fromtimestamp(source["date"].timestamp())
+        if type(source["date"] is str):
+            date_format = "%Y-%m-%d"
+            datetime_object = datetime.strptime(source["date"], date_format)
+            source["date"] = datetime_object.timestamp()
+        else:
+            source["date"] = datetime.fromtimestamp(source["date"].timestamp())
         transaction = Transaction(source["description"], source["date"], source["amount"])
         return transaction
     
