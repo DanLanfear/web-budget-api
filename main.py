@@ -19,7 +19,6 @@ default_app = initialize_app(cred)
 db = firestore.client()
 
 user_fields = {
-        'id': fields.Integer,
         'name': fields.String,
         'email': fields.String
     }
@@ -70,9 +69,13 @@ class UserList(Resource):
 class User(Resource):
     @marshal_with(user_fields)
     def get(self, user_id):
-        users = db.collections('Users')
-        user = users[user_id]
-        return user
+        try:
+            user_ref = db.collection('Users').document(user_id).get()
+            user = user_ref.to_dict()
+            return user, 200
+        except Exception as e:
+            return f"An Error Occured: {e}", 400
+
     # def delete(self, user_id):
     #     users = db.collections('Users')
     #     user = users[user_id]
