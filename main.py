@@ -71,9 +71,6 @@ class User(Resource):
     def get(self, user_id):
         try:
             user_doc_ref = db.collection("Users").document(user_id)
-            # collection = user_doc_ref.collection("transactions")
-            # for doc in collection.stream():
-            #     print(f"{doc.id} => {doc.to_dict()}")
             user = user_doc_ref.get()
             return user.to_dict(), 200
         except Exception as e:
