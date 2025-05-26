@@ -1,9 +1,20 @@
+from datetime import datetime
 class Transaction:
-    def __init__(self, id, description, date, amount):
-        self.id = id
+    def __init__(self, description, date, amount):
         self.description = description
         self.date = date
         self.amount = amount
+
+    @staticmethod
+    def from_dict(source):
+        source["date"] = datetime.fromtimestamp(source["date"].timestamp())
+        transaction = Transaction(source["description"], source["date"], source["amount"])
+        return transaction
+    
+    def to_dict(self):
+        dict_transaction = {"description": self.description, "date":self.date, "amount":self.amount}
+        return dict_transaction
+        
 
 class User:
     def __init__(self, id, name, email, password):
