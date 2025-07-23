@@ -100,7 +100,7 @@ class UserTransactionResource(Resource):
         transaction_stream = db.collection('transactions').where('userId', '==', user_id).stream()
         transaction_list = []
         for transaction in transaction_stream:
-            transaction_list.append(Transaction.from_dict(transaction.to_dict()).to_dict())
+            transaction_list.append(transaction.to_dict())
         return transaction_list, 200
     
     def post(self, user_id):
