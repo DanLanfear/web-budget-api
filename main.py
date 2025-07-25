@@ -44,16 +44,16 @@ class Hello(Resource):
     def get(self):
         return jsonify({'message':'hello world'})
 
-# @api.route('/users')
-# class UserList(Resource):
-#     @marshal_with(user_fields)
-#     def get(self):
-#         try:
-#             user_ref = db.collection('Users')
-#             users = [doc.to_dict() for doc in user_ref.stream()]
-#             return users, 200
-#         except Exception as e:
-#             return f"An Error Occured: {e}", 400
+@api.route('/users')
+class UserList(Resource):
+    @marshal_with(user_fields)
+    def get(self):
+        try:
+            user_ref = db.collection('Users')
+            users = [doc.to_dict() for doc in user_ref.stream()]
+            return users, 200
+        except Exception as e:
+            return f"An Error Occured: {e}", 400
 
 @api.route('/users/<user_id>')
 class UserResource(Resource):
@@ -68,16 +68,8 @@ class UserResource(Resource):
         except Exception as e:
             return f"An Error Occured: {e}", 400
 
-    # def delete(self, user_id):
-    #     users = db.collections('Users')
-    #     user = users[user_id]
-    #     # delete user
-
-# @api.route('/transactions')
-# class TransactionList(Resource):
-#     @marshal_with(transaction_fields)
-#     def get(self):
-#         return 
+    def delete(self, user_id):
+        pass
 
 
 @api.route('/transactions/<transaction_id>')
@@ -94,7 +86,7 @@ class TransactionResource(Resource):
             return f"An Error Occured: {e}", 400
 
 @api.route('/users/<user_id>/transactions')
-class UserTransactionResource(Resource):
+class UserTransactionListResource(Resource):
     @marshal_with(transaction_fields)
     def get(self, user_id):
         transaction_stream = db.collection('transactions').where('userId', '==', user_id).stream()
@@ -113,6 +105,19 @@ class UserTransactionResource(Resource):
         # batch.commit()
         #ADD POST FOR NEW BATCHED TRANSACTIONS
         return 201
+
+
+@api.route('/users/<user_id>/transactions/<transaction_id>')
+class UserTransactionResource(Resource):
+    @marshal_with(transaction_fields)
+    def get(self, user_id, transaction_id):
+        pass
+
+    def put(self, user_id, transaction_id):
+        pass
+    
+    def delete(self, user_id, transaction_id):
+        pass
 
 
 api.add_resource(Hello, '/')
