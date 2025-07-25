@@ -91,19 +91,23 @@ class UserTransactionListResource(Resource):
     def get(self, user_id):
         transaction_stream = db.collection('transactions').where('userId', '==', user_id).stream()
         transaction_list = []
-        for transaction in transaction_stream:
+        for item in transaction_stream:
+            transaction = Transaction.from_dict(item.to_dict())
             transaction_list.append(transaction.to_dict())
         return transaction_list, 200
     
     def post(self, user_id):
-        transaction_ref = db.collection('transactions')
         batch = db.batch()
         # get all the transactions in proper form (mainly the date) in a list
-        # for transaction in request.get_json():
-            # 
-        # batch.add(transaction_ref, {one of the guys in a list})
-        # batch.commit()
-        #ADD POST FOR NEW BATCHED TRANSACTIONS
+        for entry in request.get_json():
+            transaction_ref = db.collection('transactions').document()
+            try:
+                entry['date'] = datetime.strptime(entry['date'], "%Y-%m-%d")
+            except ValueError:
+                return {'error': 'Invalid date format. Use YYYY-MM-DD.'}, 400
+            transaction = Transaction(entry['description'], entry['date'], entry['amount'], user_id)
+            batch.set(transaction_ref, transaction.to_dict())
+        batch.commit()
         return 201
 
 
