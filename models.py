@@ -1,24 +1,32 @@
 from datetime import datetime
 class Transaction:
-
-    def __init__(self, description, date, amount):
+    def __init__(self, description, date, amount, user_id):
         self.description = description
         self.date = date
         self.amount = amount
+        self.user_id = user_id
 
-    @staticmethod
-    def from_dict(source):
-        if type(source["date"] is str):
+    # this is from a dictionary of values to the item itself. Like an initializer
+    # Use Cases: getting data from the firestore to display or send elsewhere
+    @classmethod
+    def from_dict(cls, source):
+        print(source);
+        if type(source['date']) is str:
             date_format = "%Y-%m-%d"
-            datetime_object = datetime.strptime(source["date"], date_format)
-            source["date"] = datetime_object.timestamp()
+            try:
+                date_obj = datetime.strptime(source['date'], date_format)
+                source["date"] = date_obj.timestamp()
+            except ValueError:
+                return {'error': 'Invalid date format. Use YYYY-MM-DD.'}, 400
         else:
-            source["date"] = datetime.fromtimestamp(source["date"].timestamp())
-        transaction = Transaction(source["description"], source["date"], source["amount"])
+            source['date'] = datetime.fromtimestamp(source['date'].timestamp())
+        transaction = cls(source['description'], source['date'], source['amount'], source['userId'])
         return transaction
     
+    # this is from item to dictionary
+    # Use Cases: Adding data via request -> object -> dict 
     def to_dict(self):
-        dict_transaction = {"description": self.description, "date":self.date, "amount":self.amount}
+        dict_transaction = {"description": self.description, "date":self.date, "amount":self.amount, 'user_id': self.user_id}
         return dict_transaction
         
 
