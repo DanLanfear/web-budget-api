@@ -98,6 +98,7 @@ class UserTransactionListResource(Resource):
             transaction_list.append(transaction.to_dict())
         return transaction_list, 200
     
+    @api.expect([transaction_fields], validate=True)
     def post(self, user_id):
         batch = db.batch()
         for entry in request.get_json():
