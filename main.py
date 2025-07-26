@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_restx import Resource, Api, fields, marshal_with
 from models import User, Transaction
 from firebase_admin import credentials, firestore, initialize_app
+from datetime import datetime
 
 
 import datetime
@@ -23,6 +24,7 @@ transaction_fields = {
     'description': fields.String,
     'date': fields.Date,
     'amount': fields.Fixed(decimals=2),
+    'category': fields.String
 }
 user_fields = {
         'name': fields.String,
@@ -89,7 +91,7 @@ class TransactionResource(Resource):
 class UserTransactionListResource(Resource):
     @marshal_with(transaction_fields)
     def get(self, user_id):
-        transaction_stream = db.collection('transactions').where('userId', '==', user_id).stream()
+        transaction_stream = db.collection('transactions').where('user_id', '==', user_id).stream()
         transaction_list = []
         for item in transaction_stream:
             transaction = Transaction.from_dict(item.to_dict())
@@ -98,14 +100,17 @@ class UserTransactionListResource(Resource):
     
     def post(self, user_id):
         batch = db.batch()
-        # get all the transactions in proper form (mainly the date) in a list
         for entry in request.get_json():
             transaction_ref = db.collection('transactions').document()
             try:
-                entry['date'] = datetime.strptime(entry['date'], "%Y-%m-%d")
+                entry['date'] = datetime.datetime.strptime(entry['date'], "%Y-%m-%d")
             except ValueError:
                 return {'error': 'Invalid date format. Use YYYY-MM-DD.'}, 400
-            transaction = Transaction(entry['description'], entry['date'], entry['amount'], user_id)
+            transaction = Transaction(entry['description'],
+                                       entry['date'], 
+                                       entry['amount'], 
+                                       entry['category'],
+                                       user_id)
             batch.set(transaction_ref, transaction.to_dict())
         batch.commit()
         return 201
