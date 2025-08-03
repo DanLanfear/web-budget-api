@@ -1,11 +1,10 @@
 from flask import Flask, jsonify, request
 from flask_restx import Resource, Api, fields, marshal_with
 from models import User, Transaction
+from database_constants import transaction_collection, transaction_date
 from firebase_admin import credentials, firestore, initialize_app
 from datetime import datetime
 
-
-import datetime
 import os
 
 app = Flask(__name__)
@@ -104,7 +103,7 @@ class UserTransactionListResource(Resource):
         for entry in request.get_json():
             transaction_ref = db.collection('transactions').document()
             try:
-                entry['date'] = datetime.datetime.strptime(entry['date'], "%Y-%m-%d")
+                entry['date'] = datetime.strptime(entry['date'], "%Y-%m-%d")
             except ValueError:
                 return {'error': 'Invalid date format. Use YYYY-MM-DD.'}, 400
             transaction = Transaction(entry['description'],
@@ -115,6 +114,48 @@ class UserTransactionListResource(Resource):
             batch.set(transaction_ref, transaction.to_dict())
         batch.commit()
         return 201
+
+
+@api.route('/users/<user_id>/transactions/summary')
+class UserTransactionSummaryResource(Resource):
+    def get(self, user_id):
+       
+        # format of MM-YYYY
+        start_arg = request.args.get('start').split('-')
+        end_arg = request.args.get('end','').split('-')
+        start_month = int(start_arg[0])
+        start_year = int(start_arg[1])
+
+        if end_arg == '':
+            print('yes')
+            end_month = int(end_arg[0])
+            end_year = int(end_arg[1])   
+        elif start_month == 12:
+            end_month = 1
+            end_year = start_year + 1
+        else:
+            end_month = start_month + 1
+            end_year = start_year
+        
+        print(end_year)
+        print(end_month)
+
+        start_time = datetime(start_year, start_month, 1, 0, 0, 0)
+        end_time = datetime(end_year, end_month, 1, 0, 0, 0)
+
+        transaction_stream = db.collection(transaction_collection)\
+            .where('user_id', '==', user_id)\
+            .where(transaction_date, '>=', start_time)\
+            .where(transaction_date, '<', end_time).stream()
+
+        summary = {}
+        for item in transaction_stream:
+            transaction = Transaction.from_dict(item.to_dict())
+            if transaction.category in list(summary.keys()):
+                summary[transaction.category] += transaction.amount
+            else:
+                summary[transaction.category] = transaction.amount
+        return summary, 200
 
 
 @api.route('/users/<user_id>/transactions/<transaction_id>')
