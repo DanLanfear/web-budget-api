@@ -1,0 +1,5 @@
+transaction_collection = 'transactions'
+transaction_date = 'date'
+transaction_category = 'category'
+transaction_user = 'user_id'
+transaction_amount = 'amount'
