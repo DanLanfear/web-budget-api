@@ -4,6 +4,7 @@ from models import User, Transaction
 from database_constants import transaction_collection, transaction_date
 from firebase_admin import credentials, firestore, initialize_app
 from datetime import datetime
+import util
 
 import os
 
@@ -136,6 +137,9 @@ class UserTransactionSummaryResource(Resource):
             end_month = start_month + 1
             end_year = start_year
 
+        months = util.list_months(start_year,start_month, end_year, end_month)
+
+
         start_time = datetime(start_year, start_month, 1, 0, 0, 0)
         end_time = datetime(end_year, end_month, 1, 0, 0, 0)
 
@@ -143,14 +147,38 @@ class UserTransactionSummaryResource(Resource):
             .where('user_id', '==', user_id)\
             .where(transaction_date, '>=', start_time)\
             .where(transaction_date, '<', end_time).stream()
-
+        
+        transaction_list = []
         summary = {}
+
         for item in transaction_stream:
             transaction = Transaction.from_dict(item.to_dict())
-            if transaction.category in list(summary.keys()):
-                summary[transaction.category] += transaction.amount
-            else:
-                summary[transaction.category] = transaction.amount
+            transaction_list.append(transaction)
+
+        for month in months:
+            # get the transactions for month
+            month_summary = {}
+            month_transactions = []
+            for transaction in transaction_list:
+                if transaction.date.month == month[1] and transaction.date.year == month[0]:
+                    month_transactions.append(transaction)
+            # create a month summary for all the transactions in that month
+            # TODO change keys to use the categories in the DB
+            for transaction in month_transactions:
+                if transaction.category in list(month_summary.keys()):
+                    month_summary[transaction.category] += transaction.amount
+                else:
+                    month_summary[transaction.category] = transaction.amount
+            # add the month summary to the big summary
+            summary[f'{month[1]}-{month[0]}'] = month_summary
+
+        # update to upload by month
+        # for item in transaction_stream:
+        #     transaction = Transaction.from_dict(item.to_dict())
+        #     if transaction.category in list(summary.keys()):
+        #         summary[transaction.category] += transaction.amount
+        #     else:
+        #         summary[transaction.category] = transaction.amount
         return summary, 200
 
 
