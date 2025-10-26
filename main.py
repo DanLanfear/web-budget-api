@@ -139,7 +139,6 @@ class UserTransactionSummaryResource(Resource):
 
         months = util.list_months(start_year,start_month, end_year, end_month)
 
-
         start_time = datetime(start_year, start_month, 1, 0, 0, 0)
         end_time = datetime(end_year, end_month, 1, 0, 0, 0)
 
