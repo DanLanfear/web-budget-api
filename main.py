@@ -127,7 +127,6 @@ class UserTransactionSummaryResource(Resource):
         start_year = int(start_arg[1])
 
         if end_arg == '':
-            print('yes')
             end_month = int(end_arg[0])
             end_year = int(end_arg[1])   
         elif start_month == 12:
@@ -136,9 +135,6 @@ class UserTransactionSummaryResource(Resource):
         else:
             end_month = start_month + 1
             end_year = start_year
-        
-        print(end_year)
-        print(end_month)
 
         start_time = datetime(start_year, start_month, 1, 0, 0, 0)
         end_time = datetime(end_year, end_month, 1, 0, 0, 0)
