@@ -1,0 +1,18 @@
+API Design
+
+Resources:
+
+User - get, post, put, delete
+
+transaction - get, put, delete
+transaction list - post
+
+user transaction list - get
+
+transaction summary
+
+category - get, post, put, delete
+category list - get
+
+card - get, post, put, delete
+card list - get
