@@ -42,10 +42,6 @@ def after_request(response):
     return response
 
 
-class Hello(Resource):
-    def get(self):
-        return jsonify({'message':'hello world'})
-
 @api.route('/users')
 class UserList(Resource):
     @marshal_with(user_fields)
@@ -56,6 +52,10 @@ class UserList(Resource):
             return users, 200
         except Exception as e:
             return f"An Error Occured: {e}", 400
+    
+    def post(self):
+        # TODO: write method
+        pass
 
 @api.route('/users/<user_id>')
 class UserResource(Resource):
@@ -70,25 +70,17 @@ class UserResource(Resource):
         except Exception as e:
             return f"An Error Occured: {e}", 400
 
+    def put(self, user_id):
+        # TODO: write method
+        pass
+
     def delete(self, user_id):
+        # TODO: write method
         pass
 
 
-@api.route('/transactions/<transaction_id>')
-class TransactionResource(Resource):
-    @marshal_with(transaction_fields)
-    def get(self, transaction_id):
-        try:
-            transaction_ref = db.collection("transactions").document(transaction_id)
-            transaction = transaction_ref.get()
-            if not transaction.exists:
-                return jsonify({'message':'transaction not found'}), 404
-            return transaction.to_dict(), 200
-        except Exception as e:
-            return f"An Error Occured: {e}", 400
-
 @api.route('/users/<user_id>/transactions')
-class UserTransactionListResource(Resource):
+class TransactionListResource(Resource):
     @marshal_with(transaction_fields)
     def get(self, user_id):
         transaction_stream = db.collection('transactions').where('user_id', '==', user_id).stream()
@@ -117,8 +109,29 @@ class UserTransactionListResource(Resource):
         return 201
 
 
+@api.route('/users/<user_id>/transactions/<transaction_id>')
+class TransactionResource(Resource):
+    @marshal_with(transaction_fields)
+    def get(self, transaction_id):
+        try:
+            transaction_ref = db.collection("transactions").document(transaction_id)
+            transaction = transaction_ref.get()
+            if not transaction.exists:
+                return jsonify({'message':'transaction not found'}), 404
+            return transaction.to_dict(), 200
+        except Exception as e:
+            return f"An Error Occured: {e}", 400
+    
+    def put(self, transaction_id):
+        # TODO: write method
+        pass
+
+    def delete(self, transaction_id):
+        # TODO: write method
+        pass
+
 @api.route('/users/<user_id>/transactions/summary')
-class UserTransactionSummaryResource(Resource):
+class TransactionSummaryResource(Resource):
     def get(self, user_id):
        
         # format of MM-YYYY
@@ -179,22 +192,6 @@ class UserTransactionSummaryResource(Resource):
         #     else:
         #         summary[transaction.category] = transaction.amount
         return summary, 200
-
-
-@api.route('/users/<user_id>/transactions/<transaction_id>')
-class UserTransactionResource(Resource):
-    @marshal_with(transaction_fields)
-    def get(self, user_id, transaction_id):
-        pass
-
-    def put(self, user_id, transaction_id):
-        pass
-    
-    def delete(self, user_id, transaction_id):
-        pass
-
-
-api.add_resource(Hello, '/')
 
 
 if __name__ == '__main__':
