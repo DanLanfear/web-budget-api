@@ -1,18 +1,18 @@
 API Design
 
 Resources:
+UserList - get, post
+User - get, put, delete
 
-User - get, post, put, delete
+Transaction List - get, post
+Transaction - get, put, delete
 
-transaction - get, put, delete
-transaction list - post
+Transaction Summary - get
 
-user transaction list - get
+Category List - get, post
+Category - put, delete
 
-transaction summary
+Card List - get, post
+Card - put, delete
 
-category - get, post, put, delete
-category list - get
-
-card - get, post, put, delete
-card list - get
+Login - post
