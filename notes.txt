@@ -16,3 +16,38 @@ Card List - get, post
 Card - put, delete
 
 Login - post
+
+
+
+Extra notes 
+
+# Create a namespace for transactions
+api = Namespace('transactions', description='User transaction operations')
+
+# register namespaces in routes.py
+def register_routes(app):
+    api = Api(app, version='1.0', title='Finance API', description='User Transactions API')
+    
+    api.add_namespace(users_ns, path='/api/v1')
+    api.add_namespace(transactions_ns, path='/api/v1')
+    api.add_namespace(categories_ns, path='/api/v1')
+
+    return api
+
+
+
+user api.model for responses maybe instead of fields?
+use @api.expect(transaction_model, validate=True)
+EX:
+
+transaction_model = api.model('Transaction', {
+    'amount': fields.Float(required=True, description='Transaction amount'),
+    'category_id': fields.Integer(required=True, description='Category ID'),
+    'description': fields.String(required=False, description='Transaction description')
+})
+
+transaction_response = api.model('TransactionResponse', {
+    'message': fields.String,
+    'transactions': fields.List(fields.Nested(transaction_model))
+})
+
