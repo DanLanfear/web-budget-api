@@ -2,23 +2,16 @@ from flask import Flask, jsonify, request
 from flask_restx import Resource, Api, fields, marshal_with
 from models import User, Transaction
 from database_constants import transaction_collection, transaction_date
-from firebase_admin import credentials, firestore, initialize_app
+from extensions.database import db
 from datetime import datetime
 import util
-
 import os
 
 app = Flask(__name__)
 
 api = Api(app)
-cloud = os.environ.get('cloud')
-key_path = '/firebase-key/latest-key' if cloud else 'db_key.json'
 
-
-cred = credentials.Certificate(key_path)
-default_app = initialize_app(cred)
-db = firestore.client()
-
+cards = []
 
 transaction_fields = {
     'description': fields.String,
@@ -31,7 +24,6 @@ user_fields = {
         'email': fields.String,
     } 
 
-cards = []
 
 @app.after_request
 def after_request(response):
