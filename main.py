@@ -1,15 +1,16 @@
 from flask import Flask, jsonify, request
-from flask_restx import Resource, Api, fields, marshal_with
+from flask_restx import Resource, fields, marshal_with
 from models import User, Transaction
 from database_constants import transaction_collection, transaction_date
 from extensions.database import db
 from datetime import datetime
 import util
 import os
+from routes.routes import register_routes
 
 app = Flask(__name__)
 
-api = Api(app)
+api = register_routes(app)
 
 cards = []
 
