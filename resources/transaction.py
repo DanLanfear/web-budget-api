@@ -1,17 +1,41 @@
-# from flask_restx import Namespace, Resource, fields
-# from flask import request
+from flask_restx import Namespace, Resource, fields, marshal_with
+from flask import request, jsonify
+from datetime import datetime
+from models import Transaction
+from extensions.database import db
+from database_constants import transaction_collection, transaction_date
+import util
 
-# # Create a namespace for transactions
-# api = Namespace('transactions', description='User transaction operations')
+# Create a namespace for transactions
+api = Namespace('transactions', description='User transaction operations')
 
-# # Define the schema for a single transaction
-# transaction_model = api.model('Transaction', {
-#     'amount': fields.Float(required=True, description='Transaction amount'),
-#     'category_id': fields.Integer(required=True, description='Category ID'),
-#     'description': fields.String(required=False, description='Transaction description')
-# })
 
-# # Define the schema for bulk input
+# transaction_fields = {
+#     'description': fields.String,
+#     'date': fields.Date,
+#     'amount': fields.Fixed(decimals=2),
+#     'category': fields.String
+# }
+
+
+# Define the schema for a single transaction
+transaction_model = api.model('Transaction', {
+    'amount': fields.Fixed(decimals=2, description='Transaction amount'),
+    'date': fields.Date(description='Date of transaction'),
+    'category': fields.String(description='Transaction category'),
+    'description': fields.String(description='Transaction description')
+})
+
+transaction_response = api.model('Transaction', {
+    'id': fields.String(description='Transaction ID'),
+    'amount': fields.Fixed(decimals=2, description='Transaction amount'),
+    'date': fields.Date(description='Date of transaction'),
+    'category': fields.String(description='Transaction category'),
+    'description': fields.String(description='Transaction description')
+})
+
+
+# Define the schema for bulk input
 # bulk_transaction_model = api.model('TransactionBulkInput', {
 #     'transactions': fields.List(fields.Nested(transaction_model), required=True, description='List of transactions')
 # })
@@ -31,3 +55,119 @@
 #             "message": f"Added {len(transactions)} transactions for user {user_id}",
 #             "transactions": transactions
 #         }, 201
+
+
+
+@api.route('/<user_id>/transactions')
+class TransactionListResource(Resource):
+    @marshal_with(transaction_response)
+    def get(self, user_id):
+        transaction_stream = db.collection('transactions').where('user_id', '==', user_id).stream()
+        transaction_list = []
+        for item in transaction_stream:
+            transaction = Transaction.from_dict(item.to_dict())
+            transaction_list.append(transaction.to_dict())
+        return transaction_list, 200
+    
+    @api.expect([transaction_model], validate=True)
+    def post(self, user_id):
+        batch = db.batch()
+        for entry in request.get_json():
+            transaction_ref = db.collection('transactions').document()
+            try:
+                entry['date'] = datetime.strptime(entry['date'], "%Y-%m-%d")
+            except ValueError:
+                return {'error': 'Invalid date format. Use YYYY-MM-DD.'}, 400
+            transaction = Transaction(entry['description'],
+                                       entry['date'], 
+                                       entry['amount'], 
+                                       entry['category'],
+                                       user_id)
+            batch.set(transaction_ref, transaction.to_dict())
+        batch.commit()
+        return 201
+
+
+@api.route('/<user_id>/transactions/<transaction_id>')
+class TransactionResource(Resource):
+    @marshal_with(transaction_response)
+    def get(self, transaction_id):
+        try:
+            transaction_ref = db.collection("transactions").document(transaction_id)
+            transaction = transaction_ref.get()
+            if not transaction.exists:
+                return jsonify({'message':'transaction not found'}), 404
+            return transaction.to_dict(), 200
+        except Exception as e:
+            return f"An Error Occured: {e}", 400
+    
+    def put(self, transaction_id):
+        # TODO: write method
+        pass
+
+    def delete(self, transaction_id):
+        # TODO: write method
+        pass
+
+@api.route('/<user_id>/transactions/summary')
+class TransactionSummaryResource(Resource):
+    def get(self, user_id):
+       
+        # format of MM-YYYY
+        start_arg = request.args.get('start').split('-')
+        end_arg = request.args.get('end','').split('-')
+        start_month = int(start_arg[0])
+        start_year = int(start_arg[1])
+
+        if end_arg == '':
+            end_month = int(end_arg[0])
+            end_year = int(end_arg[1])   
+        elif start_month == 12:
+            end_month = 1
+            end_year = start_year + 1
+        else:
+            end_month = start_month + 1
+            end_year = start_year
+
+        months = util.list_months(start_year,start_month, end_year, end_month)
+
+        start_time = datetime(start_year, start_month, 1, 0, 0, 0)
+        end_time = datetime(end_year, end_month, 1, 0, 0, 0)
+
+        transaction_stream = db.collection(transaction_collection)\
+            .where('user_id', '==', user_id)\
+            .where(transaction_date, '>=', start_time)\
+            .where(transaction_date, '<', end_time).stream()
+        
+        transaction_list = []
+        summary = {}
+
+        for item in transaction_stream:
+            transaction = Transaction.from_dict(item.to_dict())
+            transaction_list.append(transaction)
+
+        for month in months:
+            # get the transactions for month
+            month_summary = {}
+            month_transactions = []
+            for transaction in transaction_list:
+                if transaction.date.month == month[1] and transaction.date.year == month[0]:
+                    month_transactions.append(transaction)
+            # create a month summary for all the transactions in that month
+            # TODO change keys to use the categories in the DB
+            for transaction in month_transactions:
+                if transaction.category in list(month_summary.keys()):
+                    month_summary[transaction.category] += transaction.amount
+                else:
+                    month_summary[transaction.category] = transaction.amount
+            # add the month summary to the big summary
+            summary[f'{month[1]}-{month[0]}'] = month_summary
+
+        # update to upload by month
+        # for item in transaction_stream:
+        #     transaction = Transaction.from_dict(item.to_dict())
+        #     if transaction.category in list(summary.keys()):
+        #         summary[transaction.category] += transaction.amount
+        #     else:
+        #         summary[transaction.category] = transaction.amount
+        return summary, 200
