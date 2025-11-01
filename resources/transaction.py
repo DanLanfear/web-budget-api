@@ -9,25 +9,9 @@ import util
 # Create a namespace for transactions
 api = Namespace('transactions', description='User transaction operations')
 
-
-# transaction_fields = {
-#     'description': fields.String,
-#     'date': fields.Date,
-#     'amount': fields.Fixed(decimals=2),
-#     'category': fields.String
-# }
-
-
 # Define the schema for a single transaction
 transaction_model = api.model('Transaction', {
-    'amount': fields.Fixed(decimals=2, description='Transaction amount'),
-    'date': fields.Date(description='Date of transaction'),
-    'category': fields.String(description='Transaction category'),
-    'description': fields.String(description='Transaction description')
-})
-
-transaction_response = api.model('Transaction', {
-    'id': fields.String(description='Transaction ID'),
+    'tx_id': fields.String(description='Transaction ID'),
     'amount': fields.Fixed(decimals=2, description='Transaction amount'),
     'date': fields.Date(description='Date of transaction'),
     'category': fields.String(description='Transaction category'),
@@ -41,32 +25,16 @@ transaction_response = api.model('Transaction', {
 # })
 
 
-# @api.route('/users/<int:user_id>/transactions/bulk')
-# class TransactionBulkResource(Resource):
-#     @api.expect(bulk_transaction_model, validate=True)
-#     @api.response(201, 'Transactions created successfully')
-#     @api.doc(description='Bulk create transactions for a given user')
-#     def post(self, user_id):
-#         """Bulk create user transactions"""
-#         data = request.get_json()
-#         transactions = data.get('transactions', [])
-#         # Your database logic goes here
-#         return {
-#             "message": f"Added {len(transactions)} transactions for user {user_id}",
-#             "transactions": transactions
-#         }, 201
-
-
-
 @api.route('/<user_id>/transactions')
 class TransactionListResource(Resource):
-    @marshal_with(transaction_response)
+    @marshal_with(transaction_model)
     def get(self, user_id):
         transaction_stream = db.collection('transactions').where('user_id', '==', user_id).stream()
         transaction_list = []
         for item in transaction_stream:
-            transaction = Transaction.from_dict(item.to_dict())
-            transaction_list.append(transaction.to_dict())
+            tx_dict = {"tx_id": item.id, **item.to_dict()}
+            transaction = Transaction.from_dict(tx_dict)
+            transaction_list.append(transaction)
         return transaction_list, 200
     
     @api.expect([transaction_model], validate=True)
@@ -78,7 +46,8 @@ class TransactionListResource(Resource):
                 entry['date'] = datetime.strptime(entry['date'], "%Y-%m-%d")
             except ValueError:
                 return {'error': 'Invalid date format. Use YYYY-MM-DD.'}, 400
-            transaction = Transaction(entry['description'],
+            transaction = Transaction('',
+                                       entry['description'],
                                        entry['date'], 
                                        entry['amount'], 
                                        entry['category'],
@@ -90,14 +59,15 @@ class TransactionListResource(Resource):
 
 @api.route('/<user_id>/transactions/<transaction_id>')
 class TransactionResource(Resource):
-    @marshal_with(transaction_response)
+    @marshal_with(transaction_model)
     def get(self, transaction_id):
         try:
             transaction_ref = db.collection("transactions").document(transaction_id)
             transaction = transaction_ref.get()
             if not transaction.exists:
                 return jsonify({'message':'transaction not found'}), 404
-            return transaction.to_dict(), 200
+            tx_dict = {"tx_id": transaction_id, **transaction.to_dict()}
+            return tx_dict, 200
         except Exception as e:
             return f"An Error Occured: {e}", 400
     

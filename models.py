@@ -1,6 +1,7 @@
 from datetime import datetime
 class Transaction:
-    def __init__(self, description, date, amount, category, user_id):
+    def __init__(self, tx_id, description, date, amount, category, user_id):
+        self.tx_id = tx_id
         self.description = description
         self.date = date
         self.amount = amount
@@ -11,9 +12,8 @@ class Transaction:
     # Use Cases: getting data from the firestore to display or send elsewhere
     @classmethod
     def from_dict(cls, source):
-        print(source)
         source['date'] = datetime.fromtimestamp(source['date'].timestamp())
-        transaction = cls(source['description'], source['date'], source['amount'], source['category'], source['user_id'])
+        transaction = cls(source['tx_id'], source['description'], source['date'], source['amount'], source['category'], source['user_id'])
         return transaction
     
     # this is from item to dictionary
@@ -30,8 +30,15 @@ class User:
         self.email = email
         self.password = password
 
+
 class Card:
-    def __init__(self, id, name, columns):
-        self.id = id
+    def __init__(self, card_id, name, columns):
+        self.card_id = card_id
         self.name = name
         self.columns = columns
+
+
+class Category:
+    def __init__(self, category_id, category_name):
+        self.category_id = category_id
+        self.category_name = category_name
